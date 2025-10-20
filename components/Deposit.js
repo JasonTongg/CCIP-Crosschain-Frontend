@@ -1,346 +1,661 @@
 "use client";
 import React, { useState, useEffect } from "react";
-import { useWalletClient, useAccount, usePublicClient, useSwitchChain } from "wagmi";
+import {
+	useWalletClient,
+	useAccount,
+	usePublicClient,
+	useSwitchChain,
+} from "wagmi";
 import { parseEther, formatEther } from "viem";
 import {
-    sepolia,
-    optimismSepolia,
-    baseSepolia,
-    arbitrumSepolia,
-    unichainSepolia,
-    soneiumMinato,
+	sepolia,
+	optimismSepolia,
+	baseSepolia,
+	arbitrumSepolia,
+	unichainSepolia,
+	soneiumMinato,
 } from "wagmi/chains";
-
+import Tabs from "@mui/material/Tabs";
+import Tab from "@mui/material/Tab";
+import Box from "@mui/material/Box";
+import InputLabel from "@mui/material/InputLabel";
+import MenuItem from "@mui/material/MenuItem";
+import FormControl from "@mui/material/FormControl";
+import Select from "@mui/material/Select";
+import { toast } from "react-toastify";
+import Eth from "../public/assets/eth.png";
+import Base from "../public/assets/base.png";
+import Arb from "../public/assets/arb.png";
+import Op from "../public/assets/op.png";
+import Soneium from "../public/assets/soneium.png";
+import Uni from "../public/assets/uni.png";
+import Image from "next/image";
+import { useDispatch } from "react-redux";
+import { setRbtBalance, setBalance, setInterestRate } from "../store/data";
 
 const vaultAbi = [
-    {
-        type: "function",
-        name: "deposit",
-        stateMutability: "payable",
-        inputs: [],
-        outputs: [],
-    },
-    {
-        "inputs": [
-            {
-                "internalType": "uint256",
-                "name": "_amount",
-                "type": "uint256"
-            }
-        ],
-        "name": "redeem",
-        "outputs": [],
-        "stateMutability": "nonpayable",
-        "type": "function"
-    }
+	{
+		type: "function",
+		name: "deposit",
+		stateMutability: "payable",
+		inputs: [],
+		outputs: [],
+	},
+	{
+		inputs: [
+			{
+				internalType: "uint256",
+				name: "_amount",
+				type: "uint256",
+			},
+		],
+		name: "redeem",
+		outputs: [],
+		stateMutability: "nonpayable",
+		type: "function",
+	},
 ];
 
 const erc20Abi = [
-    {
-        type: "function",
-        name: "balanceOf",
-        stateMutability: "view",
-        inputs: [{ name: "account", type: "address" }],
-        outputs: [{ name: "", type: "uint256" }],
-    },
-    {
-        type: "function",
-        name: "getUserInterestRate",
-        stateMutability: "view",
-        inputs: [{ name: "account", type: "address" }],
-        outputs: [{ name: "", type: "uint256" }],
-    },
+	{
+		type: "function",
+		name: "balanceOf",
+		stateMutability: "view",
+		inputs: [{ name: "account", type: "address" }],
+		outputs: [{ name: "", type: "uint256" }],
+	},
+	{
+		type: "function",
+		name: "getUserInterestRate",
+		stateMutability: "view",
+		inputs: [{ name: "account", type: "address" }],
+		outputs: [{ name: "", type: "uint256" }],
+	},
 ];
 
 export default function Deposit() {
-    const { data: walletClient } = useWalletClient();
-    const publicClient = usePublicClient();
-    const { isConnected, address, chainId } = useAccount();
+	const dispatch = useDispatch();
+	const { data: walletClient } = useWalletClient();
+	const publicClient = usePublicClient();
+	const { isConnected, address, chainId } = useAccount();
 
-    const [amount, setAmount] = useState("");
-    const [redeemAmount, setRedeemAmount] = useState("");
-    const [statusMessage, setStatusMessage] = useState("");
+	const [amount, setAmount] = useState("");
+	const [redeemAmount, setRedeemAmount] = useState("");
+	const [statusMessage, setStatusMessage] = useState("");
 
-    const [selectChain, setSelectChain] = useState(arbitrumSepolia.id);
-    const { switchChainAsync, switchChain } = useSwitchChain();
+	const [selectChain, setSelectChain] = useState(arbitrumSepolia.id);
+	const { switchChainAsync, switchChain } = useSwitchChain();
 
-    const [userBalance, setUserBalance] = useState("0");
-    const [userInterestRate, setUserInterestRate] = useState("0");
+	const [userBalance, setUserBalance] = useState("0");
+	const [userTestnetBalance, setUserTestnetBalance] = useState("0");
+	const [userInterestRate, setUserInterestRate] = useState("0");
 
-    function getVaultAddress(selectChainId) {
-        switch (Number(selectChainId)) {
-            case sepolia.id:
-                return process.env.NEXT_PUBLIC_SEPOLIA_VAULT_ADDRESS;
-            case optimismSepolia.id:
-                return process.env.NEXT_PUBLIC_OP_VAULT_ADDRESS;
-            case arbitrumSepolia.id:
-                return process.env.NEXT_PUBLIC_ARBITRUM_VAULT_ADDRESS;
-            case baseSepolia.id:
-                return process.env.NEXT_PUBLIC_BASE_VAULT_ADDRESS;
-            case unichainSepolia.id:
-                return process.env.NEXT_PUBLIC_UNI_VAULT_ADDRESS;
-            case soneiumMinato.id:
-                return process.env.NEXT_PUBLIC_SONEIUM_VAULT_ADDRESS;
-        }
-    }
+	const [value, setValue] = useState("deposit");
 
-    function getRebaseTokenAddress(selectChainId) {
-        switch (Number(selectChainId)) {
-            case sepolia.id:
-                return process.env.NEXT_PUBLIC_SEPOLIA_REBASE_TOKEN_ADDRESS;
-            case optimismSepolia.id:
-                return process.env.NEXT_PUBLIC_OP_REBASE_TOKEN_ADDRESS;
-            case arbitrumSepolia.id:
-                return process.env.NEXT_PUBLIC_ARBITRUM_REBASE_TOKEN_ADDRESS;
-            case baseSepolia.id:
-                return process.env.NEXT_PUBLIC_BASE_REBASE_TOKEN_ADDRESS;
-            case unichainSepolia.id:
-                return process.env.NEXT_PUBLIC_UNI_REBASE_TOKEN_ADDRESS;
-            case soneiumMinato.id:
-                return process.env.NEXT_PUBLIC_SONEIUM_REBASE_TOKEN_ADDRESS;
-        }
-    }
+	const [depositProgress, setDepositProgress] = useState("DEPOSIT");
+	const [withdrawProgress, setWithdrawProgress] = useState("WITHDRAW");
 
-    async function getUserBalance() {
-        try {
-            if (!publicClient || !address || !selectChain) throw new Error("Missing inputs");
+	const handleChange = (event, newValue) => {
+		setValue(newValue);
+	};
 
-            const tokenAddress = getRebaseTokenAddress(selectChain);
-            if (!tokenAddress) throw new Error("Token address not found for this chain");
+	function getVaultAddress(selectChainId) {
+		switch (Number(selectChainId)) {
+			case sepolia.id:
+				return process.env.NEXT_PUBLIC_SEPOLIA_VAULT_ADDRESS;
+			case optimismSepolia.id:
+				return process.env.NEXT_PUBLIC_OP_VAULT_ADDRESS;
+			case arbitrumSepolia.id:
+				return process.env.NEXT_PUBLIC_ARBITRUM_VAULT_ADDRESS;
+			case baseSepolia.id:
+				return process.env.NEXT_PUBLIC_BASE_VAULT_ADDRESS;
+			case unichainSepolia.id:
+				return process.env.NEXT_PUBLIC_UNI_VAULT_ADDRESS;
+			case soneiumMinato.id:
+				return process.env.NEXT_PUBLIC_SONEIUM_VAULT_ADDRESS;
+		}
+	}
 
-            const balance = await publicClient.readContract({
-                address: tokenAddress,
-                abi: erc20Abi,
-                functionName: "balanceOf",
-                args: [address],
-            });
+	function getRebaseTokenAddress(selectChainId) {
+		switch (Number(selectChainId)) {
+			case sepolia.id:
+				return process.env.NEXT_PUBLIC_SEPOLIA_REBASE_TOKEN_ADDRESS;
+			case optimismSepolia.id:
+				return process.env.NEXT_PUBLIC_OP_REBASE_TOKEN_ADDRESS;
+			case arbitrumSepolia.id:
+				return process.env.NEXT_PUBLIC_ARBITRUM_REBASE_TOKEN_ADDRESS;
+			case baseSepolia.id:
+				return process.env.NEXT_PUBLIC_BASE_REBASE_TOKEN_ADDRESS;
+			case unichainSepolia.id:
+				return process.env.NEXT_PUBLIC_UNI_REBASE_TOKEN_ADDRESS;
+			case soneiumMinato.id:
+				return process.env.NEXT_PUBLIC_SONEIUM_REBASE_TOKEN_ADDRESS;
+		}
+	}
 
-            console.log("💰 User balance:", balance);
-            console.log("💰 Formatted balance:", formatEther(balance));
+	async function getUserBalance() {
+		try {
+			if (!publicClient || !address || !selectChain)
+				throw new Error("Missing inputs");
 
-            setUserBalance(formatEther(balance));
-        } catch (err) {
-            console.error("❌ Error fetching user balance:", err);
-            return "0";
-        }
-    }
+			const tokenAddress = getRebaseTokenAddress(selectChain);
+			if (!tokenAddress)
+				throw new Error("Token address not found for this chain");
 
-    async function getUserInterestRate() {
-        try {
-            const tokenAddress = getRebaseTokenAddress(selectChain);
-            if (!tokenAddress) throw new Error("Token address not found for this chain");
+			const balance = await publicClient.readContract({
+				address: tokenAddress,
+				abi: erc20Abi,
+				functionName: "balanceOf",
+				args: [address],
+			});
 
-            const interestRate = await publicClient.readContract({
-                address: tokenAddress,
-                abi: erc20Abi,
-                functionName: "getUserInterestRate",
-                args: [address],
-            });
+			console.log("💰 User balance:", balance);
+			console.log("💰 Formatted balance:", formatEther(balance));
 
-            console.log("💰 User InterestRate:", interestRate);
-            console.log("💰 Formatted InterestRate:", formatEther(interestRate));
+			setUserBalance(formatEther(balance));
+			dispatch(setRbtBalance(formatEther(balance)));
+		} catch (err) {
+			console.error("❌ Error fetching user balance:", err);
+			return "0";
+		}
+	}
 
-            setUserInterestRate(formatEther(interestRate));
-        } catch (err) {
-            console.error("❌ Error fetching user balance:", err);
-            return "0";
-        }
-    }
+	async function getUserInterestRate() {
+		try {
+			const tokenAddress = getRebaseTokenAddress(selectChain);
+			if (!tokenAddress)
+				throw new Error("Token address not found for this chain");
 
-    async function handleDeposit() {
-        if (!walletClient || !isConnected) {
-            setStatusMessage("⚠️ Please connect your wallet first.");
-            return;
-        }
+			const interestRate = await publicClient.readContract({
+				address: tokenAddress,
+				abi: erc20Abi,
+				functionName: "getUserInterestRate",
+				args: [address],
+			});
 
-        try {
-            // Step 1: Simulate transaction
-            setStatusMessage("🔍 Simulating deposit transaction...");
+			console.log("💰 User InterestRate:", interestRate);
+			console.log("💰 Formatted InterestRate:", formatEther(interestRate));
 
-            const simulation = await publicClient.simulateContract({
-                address: getVaultAddress(selectChain),
-                abi: vaultAbi,
-                functionName: "deposit",
-                account: walletClient.account,
-                value: parseEther(amount),
-            });
+			setUserInterestRate(formatEther(interestRate));
+			dispatch(setInterestRate(formatEther(interestRate)));
+		} catch (err) {
+			console.error("❌ Error fetching user balance:", err);
+			return "0";
+		}
+	}
 
-            console.log("🧪 Simulation result:", simulation);
-            setStatusMessage("✅ Simulation successful. Executing transaction...");
+	async function handleDeposit() {
+		if (!walletClient || !isConnected) {
+			setStatusMessage("⚠️ Please connect your wallet first.");
+			return;
+		}
 
-            // Step 2: Execute transaction
-            const txHash = await walletClient.writeContract(simulation.request);
-            console.log("🚀 Transaction sent:", txHash);
-            setStatusMessage("⏳ Waiting for confirmation...");
+		try {
+			// Step 1: Simulate transaction
+			setDepositProgress("DEPOSITING");
+			toast.info("🔍 Simulating deposit transaction...");
 
-            // Step 3: Wait for confirmation
-            const receipt = await publicClient.waitForTransactionReceipt({ hash: txHash });
-            console.log("🎉 Deposit confirmed:", receipt);
-            setStatusMessage("✅ Deposit successful!");
+			const simulation = await publicClient.simulateContract({
+				address: getVaultAddress(selectChain),
+				abi: vaultAbi,
+				functionName: "deposit",
+				account: walletClient.account,
+				value: parseEther(amount),
+			});
 
-            handleChainChange();
-        } catch (err) {
-            console.error("❌ Deposit failed:", err);
-            setStatusMessage("❌ Deposit failed. Check console for details.");
-        }
-    }
+			console.log("🧪 Simulation result:", simulation);
+			toast.success("Simulation successful. Executing transaction...");
 
-    async function handleWithdraw() {
-        if (!walletClient || !isConnected) {
-            setStatusMessage("⚠️ Please connect your wallet first.");
-            return;
-        }
+			// Step 2: Execute transaction
+			const txHash = await walletClient.writeContract(simulation.request);
+			console.log("🚀 Transaction sent:", txHash);
+			toast.info("⏳ Waiting for confirmation...");
 
-        try {
-            // Step 1: Prepare amount (use max if empty)
-            const withdrawAmount = redeemAmount && redeemAmount !== ""
-                ? parseEther(redeemAmount)
-                : BigInt("0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"); // type(uint256).max
+			// Step 3: Wait for confirmation
+			const receipt = await publicClient.waitForTransactionReceipt({
+				hash: txHash,
+			});
+			console.log("🎉 Deposit confirmed:", receipt);
+			toast.success("Deposit successful!");
+			setDepositProgress("DEPOSIT");
 
-            // Step 2: Simulate transaction
-            setStatusMessage("🔍 Simulating withdraw transaction...");
+			handleChainChange();
+		} catch (err) {
+			console.error("❌ Deposit failed:", err);
+			toast.error("Deposit failed. Check console for details.");
+			setDepositProgress("DEPOSIT");
+		}
+	}
 
-            const simulation = await publicClient.simulateContract({
-                address: getVaultAddress(selectChain),
-                abi: vaultAbi,
-                functionName: "redeem",
-                account: walletClient.account,
-                args: [withdrawAmount],
-            });
+	async function handleWithdraw() {
+		if (!walletClient || !isConnected) {
+			setStatusMessage("⚠️ Please connect your wallet first.");
+			return;
+		}
 
-            console.log("🧪 Simulation result:", simulation);
-            setStatusMessage("✅ Simulation successful. Executing transaction...");
+		try {
+			// Step 1: Prepare amount (use max if empty)
+			setWithdrawProgress("WITHDRAWING");
+			const withdrawAmount =
+				redeemAmount && redeemAmount !== ""
+					? parseEther(redeemAmount)
+					: BigInt(
+							"0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+					  ); // type(uint256).max
 
-            // Step 3: Execute transaction
-            const txHash = await walletClient.writeContract(simulation.request);
-            console.log("🚀 Transaction sent:", txHash);
-            setStatusMessage("⏳ Waiting for confirmation...");
+			// Step 2: Simulate transaction
+			toast.info("🔍 Simulating withdraw transaction...");
 
-            // Step 4: Wait for confirmation
-            const receipt = await publicClient.waitForTransactionReceipt({ hash: txHash });
-            console.log("🎉 Withdraw confirmed:", receipt);
-            setStatusMessage("✅ Withdraw successful!");
+			const simulation = await publicClient.simulateContract({
+				address: getVaultAddress(selectChain),
+				abi: vaultAbi,
+				functionName: "redeem",
+				account: walletClient.account,
+				args: [withdrawAmount],
+			});
 
-            handleChainChange();
-        } catch (err) {
-            console.error("❌ Withdraw failed:", err);
-            setStatusMessage("❌ Withdraw failed. Check console for details.");
-        }
-    }
+			console.log("🧪 Simulation result:", simulation);
+			toast.success("Simulation successful. Executing transaction...");
 
+			// Step 3: Execute transaction
+			const txHash = await walletClient.writeContract(simulation.request);
+			console.log("🚀 Transaction sent:", txHash);
+			toast.info("⏳ Waiting for confirmation...");
 
-    function getChainName(chainId) {
-        switch (Number(chainId)) {
-            case sepolia.id:
-                return "ETH Sepolia";
-            case optimismSepolia.id:
-                return "OP Sepolia";
-            case arbitrumSepolia.id:
-                return "Arbitrum Sepolia";
-            case baseSepolia.id:
-                return "Base Sepolia";
-            case unichainSepolia.id:
-                return "Unichain Sepolia";
-            case soneiumMinato.id:
-                return "Soneium Sepolia";
-            default:
-                return "Unknown Chain";
-        }
-    }
+			// Step 4: Wait for confirmation
+			const receipt = await publicClient.waitForTransactionReceipt({
+				hash: txHash,
+			});
+			console.log("🎉 Withdraw confirmed:", receipt);
+			toast.success("Withdraw successful!");
 
-    function getDailyInterestRate(ratePerSecond) {
-        const secondsPerDay = 86400; // 24 * 60 * 60
-        const ratePerDay = ratePerSecond * secondsPerDay;
+			handleChainChange();
+			setWithdrawProgress("WITHDRAW");
+		} catch (err) {
+			console.error("❌ Withdraw failed:", err);
+			toast.error("❌ Withdraw failed. Check console for details.");
+			setWithdrawProgress("WITHDRAW");
+		}
+	}
 
-        return {
-            decimal: ratePerDay,              // e.g. 0.00432
-            percent: ratePerDay * 100,        // e.g. 0.432%
-            formatted: `${(ratePerDay * 100).toFixed(6)}% per day`,
-        };
-    }
+	function getChainName(chainId) {
+		switch (Number(chainId)) {
+			case sepolia.id:
+				return "ETH Sepolia";
+			case optimismSepolia.id:
+				return "OP Sepolia";
+			case arbitrumSepolia.id:
+				return "Arbitrum Sepolia";
+			case baseSepolia.id:
+				return "Base Sepolia";
+			case unichainSepolia.id:
+				return "Unichain Sepolia";
+			case soneiumMinato.id:
+				return "Soneium Sepolia";
+			default:
+				return "Unknown Chain";
+		}
+	}
 
-    async function handleChainChange() {
-        try {
-            console.log("🔄 Switching to chain:", selectChain);
-            const switched = await switchChainAsync({ chainId: Number(selectChain) });
-            console.log("✅ Chain switched:", switched.name);
+	function getDailyInterestRate(ratePerSecond) {
+		const secondsPerDay = 86400; // 24 * 60 * 60
+		const ratePerDay = ratePerSecond * secondsPerDay;
 
-            // 🔥 Recreate the public client for the new chain
-            const { createPublicClient, http } = await import("viem");
+		return {
+			decimal: ratePerDay, // e.g. 0.00432
+			percent: ratePerDay * 100, // e.g. 0.432%
+			formatted: `${(ratePerDay * 100).toFixed(6)}% per day`,
+		};
+	}
 
-            const newPublicClient = createPublicClient({
-                chain: switched, // use the newly switched chain config
-                transport: http(),
-            });
+	async function handleChainChange() {
+		try {
+			console.log("🔄 Switching to chain:", selectChain);
+			const switched = await switchChainAsync({ chainId: Number(selectChain) });
+			console.log("✅ Chain switched:", switched.name);
 
-            // manually override your publicClient reference
-            Object.assign(publicClient, newPublicClient);
+			// 🔥 Recreate the public client for the new chain
+			const { createPublicClient, http } = await import("viem");
 
-            // ✅ Now safely fetch data from the correct chain
-            await getUserBalance();
-            await getUserInterestRate();
-        } catch (err) {
-            console.error("❌ Error switching chain or fetching data:", err);
-        }
-    }
+			const newPublicClient = createPublicClient({
+				chain: switched, // use the newly switched chain config
+				transport: http(),
+			});
 
-    useEffect(() => {
-        if (isConnected && selectChain) handleChainChange();
-    }, [selectChain, isConnected]);
+			// manually override your publicClient reference
+			Object.assign(publicClient, newPublicClient);
 
+			// ✅ Now safely fetch data from the correct chain
+			await getUserBalance();
+			await getUserInterestRate();
+			await getSepoliaBalance();
+		} catch (err) {
+			console.error("❌ Error switching chain or fetching data:", err);
+		}
+	}
 
+	async function getSepoliaBalance() {
+		try {
+			if (!publicClient || !address)
+				throw new Error("Missing wallet or client");
 
-    return (
-        <div className="p-4">
-            <h2 className="text-xl font-semibold mb-2">User Balance: {Number(userBalance).toFixed(4)} RBT</h2>
-            <p className="text-md">User Interest Rate: {getDailyInterestRate(userInterestRate).percent}% per day</p>
+			const balance = await publicClient.getBalance({
+				address,
+			});
 
-            <select value={selectChain} onChange={(e) => {
-                setSelectChain(e.target.value)
-            }}>
-                <option value={sepolia.id}>{getChainName(sepolia.id)}</option>
-                <option value={arbitrumSepolia.id}>{getChainName(arbitrumSepolia.id)}</option>
-                <option value={baseSepolia.id}>{getChainName(baseSepolia.id)}</option>
-                <option value={optimismSepolia.id}>{getChainName(optimismSepolia.id)}</option>
-                <option value={unichainSepolia.id}>{getChainName(unichainSepolia.id)}</option>
-                <option value={soneiumMinato.id}>{getChainName(soneiumMinato.id)}</option>
-            </select>
+			console.log("💰 Sepolia Balance:", formatEther(balance));
+			setUserTestnetBalance(formatEther(balance));
+			dispatch(setBalance(formatEther(balance)));
+		} catch (err) {
+			console.error("❌ Error fetching Sepolia balance:", err);
+		}
+	}
 
-            <input
-                type="number"
-                placeholder="Amount in ETH"
-                className="border p-2 rounded mr-2"
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-            />
+	useEffect(() => {
+		if (isConnected && selectChain) handleChainChange();
+	}, [selectChain, isConnected]);
 
-            <button
-                onClick={handleDeposit}
-                disabled={!isConnected || !amount}
-                className="bg-blue-500 text-white px-4 py-2 rounded disabled:opacity-50"
-            >
-                Deposit
-            </button>
+	useEffect(() => {
+		setSelectChain(chainId);
+	}, [chainId]);
 
-            <input
-                type="number"
-                placeholder="Amount in ETH"
-                className="border p-2 rounded mr-2"
-                value={redeemAmount}
-                onChange={(e) => setRedeemAmount(e.target.value)}
-            />
+	return (
+		<div
+			className='grid  w-full gap-3'
+			id='deposit'
+			style={{ gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))" }}
+		>
+			<div className='w-full p-4 flex flex-col gap-2'>
+				<h2 className='text-xl '>Earn more with every deposit</h2>
+				<p>
+					<b>Deposit ETH and receive RBT receipt tokens</b>. a rebase token that
+					automatically grows as protocol yield accumulates. Your balance
+					increases over time with each rebase,{" "}
+					<b>no staking or claiming required</b>. Just hold RBT and watch your
+					rewards grow.
+				</p>
+			</div>
 
-            <button
-                onClick={handleWithdraw}
-                disabled={!isConnected || !redeemAmount}
-                className="bg-blue-500 text-white px-4 py-2 rounded disabled:opacity-50"
-            >
-                Withdraw
-            </button>
-
-            {statusMessage && (
-                <p className="mt-3 text-sm text-gray-700 whitespace-pre-line">{statusMessage}</p>
-            )}
-        </div>
-    );
+			<div className='w-full border-gray-300 border-[1px] rounded-[10px]'>
+				<Box sx={{ width: "100%" }}>
+					<Tabs
+						value={value}
+						onChange={handleChange}
+						aria-label='tabs example'
+						sx={{
+							"& .MuiTabs-flexContainer": {
+								display: "grid",
+								gridTemplateColumns: "1fr 1fr",
+							},
+							"& .MuiTab-root": {
+								color: "black",
+							},
+							"& .Mui-selected": {
+								color: "black !important",
+							},
+							"& .MuiTabs-indicator": {
+								backgroundColor: "black",
+							},
+						}}
+					>
+						<Tab value='deposit' label='Deposit' />
+						<Tab value='withdraw' label='Withdraw' />
+					</Tabs>
+				</Box>
+				{value === "deposit" ? (
+					<div className='p-3 flex flex-col items-start w-full justify-center'>
+						<p className='text-lg'>Amount</p>
+						<div className='flex flex-col items-center justify-center w-full rounded border-gray-300 border-[1px] p-2 gap-3'>
+							<div
+								className='grid w-full'
+								style={{ gridTemplateColumns: "1fr auto" }}
+							>
+								<input
+									type='number'
+									placeholder='Enter Amount'
+									value={amount}
+									onChange={(e) => setAmount(e.target.value)}
+									className='text-xl py-1 px-1 outline-none border-none'
+								/>
+								<div className='text-xl'>ETH</div>
+							</div>
+							<div className='flex items-center justify-between w-full [&>*]:text-gray-400 [&>*]:text-sm'>
+								<p>{amount ? amount : "0.00"}</p>
+								<div className='flex items-center justify-center gap-1'>
+									<p>
+										Balance: {Number(Number(userTestnetBalance).toFixed(4))}
+									</p>
+									<button
+										onClick={() => {
+											setAmount(Number(userTestnetBalance).toFixed(4));
+										}}
+										className='text-gray-950'
+									>
+										Max
+									</button>
+								</div>
+							</div>
+						</div>
+						<div className='w-full my-[1.3rem]'>
+							<Box sx={{ minWidth: 120 }}>
+								<FormControl fullWidth>
+									<Select
+										labelId='demo-simple-select-label'
+										id='demo-simple-select'
+										value={selectChain}
+										displayEmpty
+										onChange={(e) => {
+											setSelectChain(e.target.value);
+										}}
+										sx={{
+											color: "black !important",
+											"& .MuiOutlinedInput-notchedOutline": {
+												borderColor: "rgba(156,163,175,0.5) !important",
+											},
+											"&:hover .MuiOutlinedInput-notchedOutline": {
+												borderColor: "rgba(156,163,175,0.5) !important",
+											},
+											"&.Mui-focused .MuiOutlinedInput-notchedOutline": {
+												borderColor: "rgba(156,163,175,0.5) !important",
+											},
+											"& .MuiSvgIcon-root": {
+												color: "black !important",
+											},
+										}}
+									>
+										<MenuItem value={sepolia.id}>
+											<div className='flex items-center gap-2'>
+												<Image
+													src={Eth}
+													className='w-[30px] h-auto rounded-[8px]'
+												/>{" "}
+												{getChainName(sepolia.id)}
+											</div>
+										</MenuItem>
+										<MenuItem value={optimismSepolia.id}>
+											<div className='flex items-center gap-2'>
+												<Image
+													src={Op}
+													className='w-[30px] h-auto rounded-[8px]'
+												/>{" "}
+												{getChainName(optimismSepolia.id)}
+											</div>
+										</MenuItem>
+										<MenuItem value={arbitrumSepolia.id}>
+											<div className='flex items-center gap-2'>
+												<Image
+													src={Arb}
+													className='w-[30px] h-auto rounded-[8px]'
+												/>{" "}
+												{getChainName(arbitrumSepolia.id)}
+											</div>
+										</MenuItem>
+										<MenuItem value={baseSepolia.id}>
+											<div className='flex items-center gap-2'>
+												<Image
+													src={Base}
+													className='w-[30px] h-auto rounded-[8px]'
+												/>{" "}
+												{getChainName(baseSepolia.id)}
+											</div>
+										</MenuItem>
+										<MenuItem value={unichainSepolia.id}>
+											<div className='flex items-center gap-2'>
+												<Image
+													src={Uni}
+													className='w-[30px] h-auto rounded-[8px]'
+												/>{" "}
+												{getChainName(unichainSepolia.id)}
+											</div>
+										</MenuItem>
+										<MenuItem value={soneiumMinato.id}>
+											<div className='flex items-center gap-2'>
+												<Image
+													src={Soneium}
+													className='w-[30px] h-auto rounded-[8px]'
+												/>{" "}
+												{getChainName(soneiumMinato.id)}
+											</div>
+										</MenuItem>
+									</Select>
+								</FormControl>
+							</Box>
+						</div>
+						<button
+							onClick={handleDeposit}
+							disabled={!isConnected || !amount}
+							className='w-full rounded-[10px] bg-gray-800 text-white py-3 px-8'
+						>
+							{depositProgress}
+						</button>
+					</div>
+				) : (
+					<div className='p-3 flex flex-col items-start w-full justify-center'>
+						<p className='text-lg'>Amount</p>
+						<div className='flex flex-col items-center justify-center w-full rounded border-gray-300 border-[1px] p-2 gap-3'>
+							<div
+								className='grid w-full'
+								style={{ gridTemplateColumns: "1fr auto" }}
+							>
+								<input
+									type='number'
+									placeholder='Enter Amount'
+									value={redeemAmount}
+									onChange={(e) => setRedeemAmount(e.target.value)}
+									className='text-xl py-1 px-1 outline-none border-none'
+								/>
+								<div className='text-xl'>RBT</div>
+							</div>
+							<div className='flex items-center justify-between w-full [&>*]:text-gray-400 [&>*]:text-sm'>
+								<p>{amount ? amount : "0.00"}</p>
+								<div className='flex items-center justify-center gap-1'>
+									<p>Balance: {Number(userBalance).toFixed(4)}</p>
+									<button
+										onClick={() => {
+											setAmount(Number(Number(userBalance).toFixed(4)));
+										}}
+										className='text-gray-950'
+									>
+										Max
+									</button>
+								</div>
+							</div>
+						</div>
+						<div className='w-full my-[1.3rem]'>
+							<Box sx={{ minWidth: 120 }}>
+								<FormControl fullWidth>
+									<Select
+										labelId='demo-simple-select-label'
+										id='demo-simple-select'
+										value={selectChain}
+										displayEmpty
+										onChange={(e) => {
+											setSelectChain(e.target.value);
+										}}
+										sx={{
+											color: "black !important",
+											"& .MuiOutlinedInput-notchedOutline": {
+												borderColor: "rgba(156,163,175,0.5) !important",
+											},
+											"&:hover .MuiOutlinedInput-notchedOutline": {
+												borderColor: "rgba(156,163,175,0.5) !important",
+											},
+											"&.Mui-focused .MuiOutlinedInput-notchedOutline": {
+												borderColor: "rgba(156,163,175,0.5) !important",
+											},
+											"& .MuiSvgIcon-root": {
+												color: "black !important",
+											},
+										}}
+									>
+										<MenuItem value={sepolia.id}>
+											<div className='flex items-center gap-2'>
+												<Image
+													src={Eth}
+													className='w-[30px] h-auto rounded-[8px]'
+												/>{" "}
+												{getChainName(sepolia.id)}
+											</div>
+										</MenuItem>
+										<MenuItem value={optimismSepolia.id}>
+											<div className='flex items-center gap-2'>
+												<Image
+													src={Op}
+													className='w-[30px] h-auto rounded-[8px]'
+												/>{" "}
+												{getChainName(optimismSepolia.id)}
+											</div>
+										</MenuItem>
+										<MenuItem value={arbitrumSepolia.id}>
+											<div className='flex items-center gap-2'>
+												<Image
+													src={Arb}
+													className='w-[30px] h-auto rounded-[8px]'
+												/>{" "}
+												{getChainName(arbitrumSepolia.id)}
+											</div>
+										</MenuItem>
+										<MenuItem value={baseSepolia.id}>
+											<div className='flex items-center gap-2'>
+												<Image
+													src={Base}
+													className='w-[30px] h-auto rounded-[8px]'
+												/>{" "}
+												{getChainName(baseSepolia.id)}
+											</div>
+										</MenuItem>
+										<MenuItem value={unichainSepolia.id}>
+											<div className='flex items-center gap-2'>
+												<Image
+													src={Uni}
+													className='w-[30px] h-auto rounded-[8px]'
+												/>{" "}
+												{getChainName(unichainSepolia.id)}
+											</div>
+										</MenuItem>
+										<MenuItem value={soneiumMinato.id}>
+											<div className='flex items-center gap-2'>
+												<Image
+													src={Soneium}
+													className='w-[30px] h-auto rounded-[8px]'
+												/>{" "}
+												{getChainName(soneiumMinato.id)}
+											</div>
+										</MenuItem>
+									</Select>
+								</FormControl>
+							</Box>
+						</div>
+						<button
+							onClick={handleWithdraw}
+							disabled={!isConnected || !redeemAmount}
+							className='w-full rounded-[10px] bg-gray-800 text-white py-3 px-8'
+						>
+							{withdrawProgress}
+						</button>
+					</div>
+				)}
+			</div>
+		</div>
+	);
 }
