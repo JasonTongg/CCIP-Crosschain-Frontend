@@ -6,7 +6,7 @@ import { ToastContainer } from "react-toastify";
 
 export default function index() {
 	return (
-		<div className='w-full flex flex-col items-center justify-center max-w-[1024px] mx-auto px-4 gap-4'>
+		<div className=' w-full flex flex-col items-center justify-center max-w-[1024px] mx-auto px-4 gap-4'>
 			<ToastContainer />
 			<Hero />
 			<Deposit />

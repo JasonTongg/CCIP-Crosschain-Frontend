@@ -31,7 +31,12 @@ import Soneium from "../public/assets/soneium.png";
 import Uni from "../public/assets/uni.png";
 import Image from "next/image";
 import { useDispatch } from "react-redux";
-import { setRbtBalance, setBalance, setInterestRate } from "../store/data";
+import {
+	setRbtBalance,
+	setBalance,
+	setInterestRate,
+	setLinkBalance,
+} from "../store/data";
 
 const vaultAbi = [
 	{
@@ -81,12 +86,12 @@ export default function Deposit() {
 
 	const [amount, setAmount] = useState("");
 	const [redeemAmount, setRedeemAmount] = useState("");
-	const [statusMessage, setStatusMessage] = useState("");
 
 	const [selectChain, setSelectChain] = useState(arbitrumSepolia.id);
 	const { switchChainAsync, switchChain } = useSwitchChain();
 
 	const [userBalance, setUserBalance] = useState("0");
+	const [userLinkBalance, setUserLinkBalance] = useState("0");
 	const [userTestnetBalance, setUserTestnetBalance] = useState("0");
 	const [userInterestRate, setUserInterestRate] = useState("0");
 
@@ -133,6 +138,23 @@ export default function Deposit() {
 		}
 	}
 
+	function getLinkTokenAddress(selectChainId) {
+		switch (Number(selectChainId)) {
+			case sepolia.id:
+				return process.env.NEXT_PUBLIC_SEPOLIA_LINK_ADDRESS;
+			case optimismSepolia.id:
+				return process.env.NEXT_PUBLIC_OP_LINK_ADDRESS;
+			case arbitrumSepolia.id:
+				return process.env.NEXT_PUBLIC_ARBITRUM_LINK_ADDRESS;
+			case baseSepolia.id:
+				return process.env.NEXT_PUBLIC_BASE_LINK_ADDRESS;
+			case unichainSepolia.id:
+				return process.env.NEXT_PUBLIC_UNI_LINK_ADDRESS;
+			case soneiumMinato.id:
+				return process.env.NEXT_PUBLIC_SONEIUM_LINK_ADDRESS;
+		}
+	}
+
 	async function getUserBalance() {
 		try {
 			if (!publicClient || !address || !selectChain)
@@ -154,6 +176,33 @@ export default function Deposit() {
 
 			setUserBalance(formatEther(balance));
 			dispatch(setRbtBalance(formatEther(balance)));
+		} catch (err) {
+			console.error("❌ Error fetching user balance:", err);
+			return "0";
+		}
+	}
+
+	async function getUserLinkBalance() {
+		try {
+			if (!publicClient || !address || !selectChain)
+				throw new Error("Missing inputs");
+
+			const tokenAddress = getLinkTokenAddress(selectChain);
+			if (!tokenAddress)
+				throw new Error("Token address not found for this chain");
+
+			const balance = await publicClient.readContract({
+				address: tokenAddress,
+				abi: erc20Abi,
+				functionName: "balanceOf",
+				args: [address],
+			});
+
+			console.log("💰 User Link balance:", balance);
+			console.log("💰 Formatted Link balance:", formatEther(balance));
+
+			setUserLinkBalance(formatEther(balance));
+			dispatch(setLinkBalance(formatEther(balance)));
 		} catch (err) {
 			console.error("❌ Error fetching user balance:", err);
 			return "0";
@@ -186,7 +235,12 @@ export default function Deposit() {
 
 	async function handleDeposit() {
 		if (!walletClient || !isConnected) {
-			setStatusMessage("⚠️ Please connect your wallet first.");
+			toast.error("⚠️ Please connect your wallet first.");
+			return;
+		}
+
+		if (amount <= 0) {
+			toast.error("⚠️ Amount must be larger then 0");
 			return;
 		}
 
@@ -220,6 +274,7 @@ export default function Deposit() {
 			setDepositProgress("DEPOSIT");
 
 			handleChainChange();
+			setAmount("");
 		} catch (err) {
 			console.error("❌ Deposit failed:", err);
 			toast.error("Deposit failed. Check console for details.");
@@ -229,7 +284,12 @@ export default function Deposit() {
 
 	async function handleWithdraw() {
 		if (!walletClient || !isConnected) {
-			setStatusMessage("⚠️ Please connect your wallet first.");
+			toast.error("⚠️ Please connect your wallet first.");
+			return;
+		}
+
+		if (redeemAmount <= 0) {
+			toast.error("⚠️ Amount must be larger then 0");
 			return;
 		}
 
@@ -271,6 +331,7 @@ export default function Deposit() {
 
 			handleChainChange();
 			setWithdrawProgress("WITHDRAW");
+			setRedeemAmount("");
 		} catch (err) {
 			console.error("❌ Withdraw failed:", err);
 			toast.error("❌ Withdraw failed. Check console for details.");
@@ -329,6 +390,7 @@ export default function Deposit() {
 			await getUserBalance();
 			await getUserInterestRate();
 			await getSepoliaBalance();
+			await getUserLinkBalance();
 		} catch (err) {
 			console.error("❌ Error switching chain or fetching data:", err);
 		}
@@ -360,302 +422,336 @@ export default function Deposit() {
 	}, [chainId]);
 
 	return (
-		<div
-			className='grid  w-full gap-3'
-			id='deposit'
-			style={{ gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))" }}
-		>
-			<div className='w-full p-4 flex flex-col gap-2'>
-				<h2 className='text-xl '>Earn more with every deposit</h2>
-				<p>
-					<b>Deposit ETH and receive RBT receipt tokens</b>. a rebase token that
-					automatically grows as protocol yield accumulates. Your balance
-					increases over time with each rebase,{" "}
-					<b>no staking or claiming required</b>. Just hold RBT and watch your
-					rewards grow.
-				</p>
+		<>
+			<div className='flex items-center justify-evenly gap-4 flex-wrap [&>*]:min-w-[150px] mb-[2rem] border-[2px] border-gray-400 p-4 rounded-[10px]'>
+				<div className='flex flex-col items-center justify-center gap-2 '>
+					<p className='text-2xl'>{Number(userLinkBalance).toFixed(4)}</p>
+					<p className='text-gray-500'>LINK</p>
+				</div>
+				<div className='flex flex-col items-center justify-center gap-2 '>
+					<p className='text-2xl'>{Number(userBalance).toFixed(4)}</p>
+					<p className='text-gray-500'>RBT</p>
+				</div>
+				<div className='flex flex-col items-center justify-center gap-2 '>
+					<p className='text-2xl'>{Number(userTestnetBalance).toFixed(4)}</p>
+					<p className='text-gray-500'>ETH</p>
+				</div>
+				<div className='flex flex-col items-center justify-center gap-2 '>
+					<p className='text-2xl'>
+						{getDailyInterestRate(userInterestRate).percent}%
+					</p>
+					<p className='text-gray-500'>Per Day</p>
+				</div>
 			</div>
+			<div
+				className='grid  w-full gap-3'
+				id='deposit'
+				style={{ gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))" }}
+			>
+				<div className='w-full p-4 flex flex-col gap-2'>
+					<h2 className='text-xl '>Earn more with every deposit</h2>
+					<p>
+						<b>Deposit ETH and receive RBT receipt tokens</b>. a rebase token
+						that automatically grows as protocol yield accumulates. Your balance
+						increases over time with each rebase,{" "}
+						<b>no staking or claiming required</b>. Just hold RBT and watch your
+						rewards grow.
+					</p>
+				</div>
 
-			<div className='w-full border-gray-300 border-[1px] rounded-[10px]'>
-				<Box sx={{ width: "100%" }}>
-					<Tabs
-						value={value}
-						onChange={handleChange}
-						aria-label='tabs example'
-						sx={{
-							"& .MuiTabs-flexContainer": {
-								display: "grid",
-								gridTemplateColumns: "1fr 1fr",
-							},
-							"& .MuiTab-root": {
-								color: "black",
-							},
-							"& .Mui-selected": {
-								color: "black !important",
-							},
-							"& .MuiTabs-indicator": {
-								backgroundColor: "black",
-							},
-						}}
-					>
-						<Tab value='deposit' label='Deposit' />
-						<Tab value='withdraw' label='Withdraw' />
-					</Tabs>
-				</Box>
-				{value === "deposit" ? (
-					<div className='p-3 flex flex-col items-start w-full justify-center'>
-						<p className='text-lg'>Amount</p>
-						<div className='flex flex-col items-center justify-center w-full rounded border-gray-300 border-[1px] p-2 gap-3'>
-							<div
-								className='grid w-full'
-								style={{ gridTemplateColumns: "1fr auto" }}
-							>
-								<input
-									type='number'
-									placeholder='Enter Amount'
-									value={amount}
-									onChange={(e) => setAmount(e.target.value)}
-									className='text-xl py-1 px-1 outline-none border-none'
-								/>
-								<div className='text-xl'>ETH</div>
-							</div>
-							<div className='flex items-center justify-between w-full [&>*]:text-gray-400 [&>*]:text-sm'>
-								<p>{amount ? amount : "0.00"}</p>
-								<div className='flex items-center justify-center gap-1'>
-									<p>
-										Balance: {Number(Number(userTestnetBalance).toFixed(4))}
-									</p>
-									<button
-										onClick={() => {
-											setAmount(Number(userTestnetBalance).toFixed(4));
+				<div className='w-full border-gray-300 border-[1px] rounded-[10px]'>
+					<Box sx={{ width: "100%" }}>
+						<Tabs
+							value={value}
+							onChange={handleChange}
+							aria-label='tabs example'
+							sx={{
+								"& .MuiTabs-flexContainer": {
+									display: "grid",
+									gridTemplateColumns: "1fr 1fr",
+								},
+								"& .MuiTab-root": {
+									color: "black",
+								},
+								"& .Mui-selected": {
+									color: "black !important",
+								},
+								"& .MuiTabs-indicator": {
+									backgroundColor: "black",
+								},
+							}}
+						>
+							<Tab value='deposit' label='Deposit' />
+							<Tab value='withdraw' label='Withdraw' />
+						</Tabs>
+					</Box>
+					{value === "deposit" ? (
+						<div className='p-3 flex flex-col items-start w-full justify-center'>
+							<p className='text-lg'>Amount</p>
+							<div className='flex flex-col items-center justify-center w-full rounded border-gray-300 border-[1px] p-2 gap-3'>
+								<div
+									className='grid w-full'
+									style={{ gridTemplateColumns: "1fr auto" }}
+								>
+									<input
+										type='number'
+										placeholder='Enter Amount'
+										value={amount}
+										onChange={(e) => {
+											if (Number(e.target.value) > Number(userTestnetBalance)) {
+												setAmount(Number(userTestnetBalance));
+											} else {
+												setAmount(e.target.value);
+											}
 										}}
-										className='text-gray-950'
-									>
-										Max
-									</button>
+										className='text-xl py-1 px-1 outline-none border-none'
+									/>
+									<div className='text-xl'>ETH</div>
+								</div>
+								<div className='flex items-center justify-between w-full [&>*]:text-gray-400 [&>*]:text-sm'>
+									<p>{amount ? amount : "0.00"}</p>
+									<div className='flex items-center justify-center gap-1'>
+										<p>
+											Balance: {Number(Number(userTestnetBalance).toFixed(4))}
+										</p>
+										<button
+											onClick={() => {
+												setAmount(Number(userTestnetBalance).toFixed(4));
+											}}
+											className='text-gray-950'
+										>
+											Max
+										</button>
+									</div>
 								</div>
 							</div>
-						</div>
-						<div className='w-full my-[1.3rem]'>
-							<Box sx={{ minWidth: 120 }}>
-								<FormControl fullWidth>
-									<Select
-										labelId='demo-simple-select-label'
-										id='demo-simple-select'
-										value={selectChain}
-										displayEmpty
-										onChange={(e) => {
-											setSelectChain(e.target.value);
-										}}
-										sx={{
-											color: "black !important",
-											"& .MuiOutlinedInput-notchedOutline": {
-												borderColor: "rgba(156,163,175,0.5) !important",
-											},
-											"&:hover .MuiOutlinedInput-notchedOutline": {
-												borderColor: "rgba(156,163,175,0.5) !important",
-											},
-											"&.Mui-focused .MuiOutlinedInput-notchedOutline": {
-												borderColor: "rgba(156,163,175,0.5) !important",
-											},
-											"& .MuiSvgIcon-root": {
+							<div className='w-full my-[1.3rem]'>
+								<Box sx={{ minWidth: 120 }}>
+									<FormControl fullWidth>
+										<Select
+											labelId='demo-simple-select-label'
+											id='demo-simple-select'
+											value={selectChain}
+											displayEmpty
+											onChange={(e) => {
+												setSelectChain(e.target.value);
+											}}
+											sx={{
 												color: "black !important",
-											},
-										}}
-									>
-										<MenuItem value={sepolia.id}>
-											<div className='flex items-center gap-2'>
-												<Image
-													src={Eth}
-													className='w-[30px] h-auto rounded-[8px]'
-												/>{" "}
-												{getChainName(sepolia.id)}
-											</div>
-										</MenuItem>
-										<MenuItem value={optimismSepolia.id}>
-											<div className='flex items-center gap-2'>
-												<Image
-													src={Op}
-													className='w-[30px] h-auto rounded-[8px]'
-												/>{" "}
-												{getChainName(optimismSepolia.id)}
-											</div>
-										</MenuItem>
-										<MenuItem value={arbitrumSepolia.id}>
-											<div className='flex items-center gap-2'>
-												<Image
-													src={Arb}
-													className='w-[30px] h-auto rounded-[8px]'
-												/>{" "}
-												{getChainName(arbitrumSepolia.id)}
-											</div>
-										</MenuItem>
-										<MenuItem value={baseSepolia.id}>
-											<div className='flex items-center gap-2'>
-												<Image
-													src={Base}
-													className='w-[30px] h-auto rounded-[8px]'
-												/>{" "}
-												{getChainName(baseSepolia.id)}
-											</div>
-										</MenuItem>
-										<MenuItem value={unichainSepolia.id}>
-											<div className='flex items-center gap-2'>
-												<Image
-													src={Uni}
-													className='w-[30px] h-auto rounded-[8px]'
-												/>{" "}
-												{getChainName(unichainSepolia.id)}
-											</div>
-										</MenuItem>
-										<MenuItem value={soneiumMinato.id}>
-											<div className='flex items-center gap-2'>
-												<Image
-													src={Soneium}
-													className='w-[30px] h-auto rounded-[8px]'
-												/>{" "}
-												{getChainName(soneiumMinato.id)}
-											</div>
-										</MenuItem>
-									</Select>
-								</FormControl>
-							</Box>
-						</div>
-						<button
-							onClick={handleDeposit}
-							disabled={!isConnected || !amount}
-							className='w-full rounded-[10px] bg-gray-800 text-white py-3 px-8'
-						>
-							{depositProgress}
-						</button>
-					</div>
-				) : (
-					<div className='p-3 flex flex-col items-start w-full justify-center'>
-						<p className='text-lg'>Amount</p>
-						<div className='flex flex-col items-center justify-center w-full rounded border-gray-300 border-[1px] p-2 gap-3'>
-							<div
-								className='grid w-full'
-								style={{ gridTemplateColumns: "1fr auto" }}
-							>
-								<input
-									type='number'
-									placeholder='Enter Amount'
-									value={redeemAmount}
-									onChange={(e) => setRedeemAmount(e.target.value)}
-									className='text-xl py-1 px-1 outline-none border-none'
-								/>
-								<div className='text-xl'>RBT</div>
+												"& .MuiOutlinedInput-notchedOutline": {
+													borderColor: "rgba(156,163,175,0.5) !important",
+												},
+												"&:hover .MuiOutlinedInput-notchedOutline": {
+													borderColor: "rgba(156,163,175,0.5) !important",
+												},
+												"&.Mui-focused .MuiOutlinedInput-notchedOutline": {
+													borderColor: "rgba(156,163,175,0.5) !important",
+												},
+												"& .MuiSvgIcon-root": {
+													color: "black !important",
+												},
+											}}
+										>
+											<MenuItem value={sepolia.id}>
+												<div className='flex items-center gap-2'>
+													<Image
+														src={Eth}
+														className='w-[30px] h-auto rounded-[8px]'
+													/>{" "}
+													{getChainName(sepolia.id)}
+												</div>
+											</MenuItem>
+											<MenuItem value={optimismSepolia.id}>
+												<div className='flex items-center gap-2'>
+													<Image
+														src={Op}
+														className='w-[30px] h-auto rounded-[8px]'
+													/>{" "}
+													{getChainName(optimismSepolia.id)}
+												</div>
+											</MenuItem>
+											<MenuItem value={arbitrumSepolia.id}>
+												<div className='flex items-center gap-2'>
+													<Image
+														src={Arb}
+														className='w-[30px] h-auto rounded-[8px]'
+													/>{" "}
+													{getChainName(arbitrumSepolia.id)}
+												</div>
+											</MenuItem>
+											<MenuItem value={baseSepolia.id}>
+												<div className='flex items-center gap-2'>
+													<Image
+														src={Base}
+														className='w-[30px] h-auto rounded-[8px]'
+													/>{" "}
+													{getChainName(baseSepolia.id)}
+												</div>
+											</MenuItem>
+											<MenuItem value={unichainSepolia.id}>
+												<div className='flex items-center gap-2'>
+													<Image
+														src={Uni}
+														className='w-[30px] h-auto rounded-[8px]'
+													/>{" "}
+													{getChainName(unichainSepolia.id)}
+												</div>
+											</MenuItem>
+											<MenuItem value={soneiumMinato.id}>
+												<div className='flex items-center gap-2'>
+													<Image
+														src={Soneium}
+														className='w-[30px] h-auto rounded-[8px]'
+													/>{" "}
+													{getChainName(soneiumMinato.id)}
+												</div>
+											</MenuItem>
+										</Select>
+									</FormControl>
+								</Box>
 							</div>
-							<div className='flex items-center justify-between w-full [&>*]:text-gray-400 [&>*]:text-sm'>
-								<p>{amount ? amount : "0.00"}</p>
-								<div className='flex items-center justify-center gap-1'>
-									<p>Balance: {Number(userBalance).toFixed(4)}</p>
-									<button
-										onClick={() => {
-											setAmount(Number(Number(userBalance).toFixed(4)));
+							<button
+								onClick={handleDeposit}
+								disabled={!isConnected || !amount}
+								className='w-full rounded-[10px] bg-gray-800 text-white py-3 px-8'
+							>
+								{depositProgress}
+							</button>
+						</div>
+					) : (
+						<div className='p-3 flex flex-col items-start w-full justify-center'>
+							<p className='text-lg'>Amount</p>
+							<div className='flex flex-col items-center justify-center w-full rounded border-gray-300 border-[1px] p-2 gap-3'>
+								<div
+									className='grid w-full'
+									style={{ gridTemplateColumns: "1fr auto" }}
+								>
+									<input
+										type='number'
+										placeholder='Enter Amount'
+										value={redeemAmount}
+										onChange={(e) => {
+											if (Number(e.target.value) > Number(userBalance)) {
+												setRedeemAmount(Number(userBalance));
+											} else {
+												setRedeemAmount(e.target.value);
+											}
 										}}
-										className='text-gray-950'
-									>
-										Max
-									</button>
+										className='text-xl py-1 px-1 outline-none border-none'
+									/>
+									<div className='text-xl'>RBT</div>
+								</div>
+								<div className='flex items-center justify-between w-full [&>*]:text-gray-400 [&>*]:text-sm'>
+									<p>{amount ? amount : "0.00"}</p>
+									<div className='flex items-center justify-center gap-1'>
+										<p>Balance: {Number(userBalance).toFixed(4)}</p>
+										<button
+											onClick={() => {
+												setAmount(Number(Number(userBalance).toFixed(4)));
+											}}
+											className='text-gray-950'
+										>
+											Max
+										</button>
+									</div>
 								</div>
 							</div>
-						</div>
-						<div className='w-full my-[1.3rem]'>
-							<Box sx={{ minWidth: 120 }}>
-								<FormControl fullWidth>
-									<Select
-										labelId='demo-simple-select-label'
-										id='demo-simple-select'
-										value={selectChain}
-										displayEmpty
-										onChange={(e) => {
-											setSelectChain(e.target.value);
-										}}
-										sx={{
-											color: "black !important",
-											"& .MuiOutlinedInput-notchedOutline": {
-												borderColor: "rgba(156,163,175,0.5) !important",
-											},
-											"&:hover .MuiOutlinedInput-notchedOutline": {
-												borderColor: "rgba(156,163,175,0.5) !important",
-											},
-											"&.Mui-focused .MuiOutlinedInput-notchedOutline": {
-												borderColor: "rgba(156,163,175,0.5) !important",
-											},
-											"& .MuiSvgIcon-root": {
+							<div className='w-full my-[1.3rem]'>
+								<Box sx={{ minWidth: 120 }}>
+									<FormControl fullWidth>
+										<Select
+											labelId='demo-simple-select-label'
+											id='demo-simple-select'
+											value={selectChain}
+											displayEmpty
+											onChange={(e) => {
+												setSelectChain(e.target.value);
+											}}
+											sx={{
 												color: "black !important",
-											},
-										}}
-									>
-										<MenuItem value={sepolia.id}>
-											<div className='flex items-center gap-2'>
-												<Image
-													src={Eth}
-													className='w-[30px] h-auto rounded-[8px]'
-												/>{" "}
-												{getChainName(sepolia.id)}
-											</div>
-										</MenuItem>
-										<MenuItem value={optimismSepolia.id}>
-											<div className='flex items-center gap-2'>
-												<Image
-													src={Op}
-													className='w-[30px] h-auto rounded-[8px]'
-												/>{" "}
-												{getChainName(optimismSepolia.id)}
-											</div>
-										</MenuItem>
-										<MenuItem value={arbitrumSepolia.id}>
-											<div className='flex items-center gap-2'>
-												<Image
-													src={Arb}
-													className='w-[30px] h-auto rounded-[8px]'
-												/>{" "}
-												{getChainName(arbitrumSepolia.id)}
-											</div>
-										</MenuItem>
-										<MenuItem value={baseSepolia.id}>
-											<div className='flex items-center gap-2'>
-												<Image
-													src={Base}
-													className='w-[30px] h-auto rounded-[8px]'
-												/>{" "}
-												{getChainName(baseSepolia.id)}
-											</div>
-										</MenuItem>
-										<MenuItem value={unichainSepolia.id}>
-											<div className='flex items-center gap-2'>
-												<Image
-													src={Uni}
-													className='w-[30px] h-auto rounded-[8px]'
-												/>{" "}
-												{getChainName(unichainSepolia.id)}
-											</div>
-										</MenuItem>
-										<MenuItem value={soneiumMinato.id}>
-											<div className='flex items-center gap-2'>
-												<Image
-													src={Soneium}
-													className='w-[30px] h-auto rounded-[8px]'
-												/>{" "}
-												{getChainName(soneiumMinato.id)}
-											</div>
-										</MenuItem>
-									</Select>
-								</FormControl>
-							</Box>
+												"& .MuiOutlinedInput-notchedOutline": {
+													borderColor: "rgba(156,163,175,0.5) !important",
+												},
+												"&:hover .MuiOutlinedInput-notchedOutline": {
+													borderColor: "rgba(156,163,175,0.5) !important",
+												},
+												"&.Mui-focused .MuiOutlinedInput-notchedOutline": {
+													borderColor: "rgba(156,163,175,0.5) !important",
+												},
+												"& .MuiSvgIcon-root": {
+													color: "black !important",
+												},
+											}}
+										>
+											<MenuItem value={sepolia.id}>
+												<div className='flex items-center gap-2'>
+													<Image
+														src={Eth}
+														className='w-[30px] h-auto rounded-[8px]'
+													/>{" "}
+													{getChainName(sepolia.id)}
+												</div>
+											</MenuItem>
+											<MenuItem value={optimismSepolia.id}>
+												<div className='flex items-center gap-2'>
+													<Image
+														src={Op}
+														className='w-[30px] h-auto rounded-[8px]'
+													/>{" "}
+													{getChainName(optimismSepolia.id)}
+												</div>
+											</MenuItem>
+											<MenuItem value={arbitrumSepolia.id}>
+												<div className='flex items-center gap-2'>
+													<Image
+														src={Arb}
+														className='w-[30px] h-auto rounded-[8px]'
+													/>{" "}
+													{getChainName(arbitrumSepolia.id)}
+												</div>
+											</MenuItem>
+											<MenuItem value={baseSepolia.id}>
+												<div className='flex items-center gap-2'>
+													<Image
+														src={Base}
+														className='w-[30px] h-auto rounded-[8px]'
+													/>{" "}
+													{getChainName(baseSepolia.id)}
+												</div>
+											</MenuItem>
+											<MenuItem value={unichainSepolia.id}>
+												<div className='flex items-center gap-2'>
+													<Image
+														src={Uni}
+														className='w-[30px] h-auto rounded-[8px]'
+													/>{" "}
+													{getChainName(unichainSepolia.id)}
+												</div>
+											</MenuItem>
+											<MenuItem value={soneiumMinato.id}>
+												<div className='flex items-center gap-2'>
+													<Image
+														src={Soneium}
+														className='w-[30px] h-auto rounded-[8px]'
+													/>{" "}
+													{getChainName(soneiumMinato.id)}
+												</div>
+											</MenuItem>
+										</Select>
+									</FormControl>
+								</Box>
+							</div>
+							<button
+								onClick={handleWithdraw}
+								disabled={!isConnected || !redeemAmount}
+								className='w-full rounded-[10px] bg-gray-800 text-white py-3 px-8'
+							>
+								{withdrawProgress}
+							</button>
 						</div>
-						<button
-							onClick={handleWithdraw}
-							disabled={!isConnected || !redeemAmount}
-							className='w-full rounded-[10px] bg-gray-800 text-white py-3 px-8'
-						>
-							{withdrawProgress}
-						</button>
-					</div>
-				)}
+					)}
+				</div>
 			</div>
-		</div>
+		</>
 	);
 }

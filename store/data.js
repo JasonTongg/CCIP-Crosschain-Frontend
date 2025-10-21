@@ -5,6 +5,7 @@ const initialState = {
 	RBTBalance: "",
 	Balance: "",
 	InterestRate: "",
+	LinkBalance: "",
 };
 
 // Create the slice
@@ -19,7 +20,10 @@ const datas = createSlice({
 			state.Balance = action.payload;
 		},
 		setInterestRate(state, action) {
-			state.InterestRate = action.InterestRate;
+			state.InterestRate = action.payload;
+		},
+		setLinkBalance(state, action) {
+			state.LinkBalance = action.payload;
 		},
 	},
 });
@@ -27,4 +31,5 @@ const datas = createSlice({
 // Export the reducer
 export default datas.reducer;
 
-export const { setRbtBalance, setBalance, setInterestRate } = datas.actions;
+export const { setRbtBalance, setBalance, setInterestRate, setLinkBalance } =
+	datas.actions;
