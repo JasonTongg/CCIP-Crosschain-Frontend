@@ -47,7 +47,23 @@ img {
 
 .bg-bg {
 	position: relative;
-	background-image: url("../public/assets/bg2.jpg");
+	background: linear-gradient(
+			0deg,
+			rgba(255, 255, 255, 0.4) 0%,
+			rgba(255, 255, 255, 0.4) 100%
+		),
+		radial-gradient(
+			205.3% 100% at 46.87% 0%,
+			rgba(173, 216, 230, 0.1) 0%,
+			/* light sky tint */ rgba(173, 216, 230, 0.1) 15%,
+			rgba(240, 248, 255, 0.1) 100% /* very light blue-white */
+		),
+		radial-gradient(
+			79.13% 61.26% at 50% 0%,
+			rgba(173, 216, 230, 0.7) 0%,
+			/* soft teal tone */ rgba(255, 255, 255, 0.7) 100%
+		);
+
 	background-position: center;
 	background-repeat: no-repeat;
 	background-size: cover;
@@ -58,6 +74,6 @@ img {
 	content: "";
 	position: absolute;
 	inset: 0; /* shorthand for top:0; right:0; bottom:0; left:0 */
-	background: rgba(255, 255, 255, 0.4); /* adjust opacity here */
+	background: rgba(255, 255, 255, 0.8); /* adjust opacity here */
 	z-index: -1;
 }

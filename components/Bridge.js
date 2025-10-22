@@ -35,6 +35,7 @@ import Link from "next/link";
 import Loading from "../public/assets/loading.gif";
 import { motion } from "framer-motion";
 import { LuArrowRight } from "react-icons/lu";
+import Animation from "../public/assets/animation.gif";
 
 const erc20Abi = [
 	{
@@ -632,7 +633,7 @@ export default function Bridge() {
 									setIsBridging(false);
 									setBridgeAmount("");
 								}}
-								className='w-full bg-gray-800 text-white rounded-[10px] px-8 py-3 mt-[0.5rem]'
+								className='w-full bg-gradient-to-tr from-cyan-500 font-bold to-teal-400 hover:scale-105 transition-all text-white rounded-[10px] px-8 py-3 mt-[0.5rem]'
 							>
 								BACK TO BRIDGE
 							</button>
@@ -784,7 +785,7 @@ export default function Bridge() {
 							</Box>
 						</div>
 						<div
-							className='grid gap-2 border-gray-300 border-[1px] rounded-[10px] py-1 px-3 items-center justify-center mt-[1.5rem] mb-[0.5rem]'
+							className='grid gap-2 border-gray-300 border-[1px] rounded-[10px] py-1 px-3 items-center justify-center mt-[1.5rem] mb-[0.5rem] w-full'
 							style={{ gridTemplateColumns: "auto 1fr auto" }}
 						>
 							<div className='border-r-[2px] border-gray-300 px-2 py-1'>
@@ -792,7 +793,7 @@ export default function Bridge() {
 							</div>
 							<input
 								type='number'
-								className='py-2 px-3 text-xl outline-none border-none'
+								className='py-2 px-3 text-xl outline-none border-none w-full'
 								placeholder='0'
 								onChange={(e) => {
 									if (Number(e.target.value) > Number(RBTBalance)) {
@@ -846,7 +847,7 @@ export default function Bridge() {
 									)
 								}
 								disabled={!isConnected || loading}
-								className='bg-gray-800 py-3 px-8 text-center text-white w-full rounded-[10px]'
+								className='bg-gray-800 py-3 px-8 text-center text-white w-full rounded-[10px] bg-gradient-to-tr from-cyan-500 to-teal-400 transition-all hover:scale-105 font-bold'
 							>
 								{loading ? "BRIDGING..." : "BRIDGE"}
 							</button>
@@ -855,21 +856,26 @@ export default function Bridge() {
 								<Link
 									href='https://faucets.chain.link/'
 									target='_blank'
-									className='bg-red-800 py-3 px-8 text-center text-white w-full rounded-[10px] block'
+									className='from-red-500 to-rose-500 bg-gradient-to-tr py-3 px-8 text-center transition-all hover:scale-105 text-white w-full rounded-[10px] block font-bold'
 								>
 									INSUFFICIENT LINK BALANCE
 								</Link>
 								<Link
 									href='https://faucets.chain.link/'
 									target='_blank'
-									className='py-3 px-8 text-center text-blue-600 w-full rounded-[10px] block test-sm font-bold'
+									className='py-3 px-8 text-center text-cyan-500 w-full rounded-[10px] block test-sm font-bold'
 								>
 									Get LINK faucet here
 								</Link>
 							</>
 						)}
 					</div>
-					<div className='bg-gray-500 w-full'></div>
+					<div className='relative w-full'>
+						<div className='absolute inset-0 bg-gradient-to-tr from-cyan-100 to-teal-100 rounded-2xl blur-2xl opacity-70'></div>
+						<div className='relative bg-white/80 rounded-xl p-6 shadow-xl h-full'>
+							{/* <Image src={Animation} className='w-full' /> */}
+						</div>
+					</div>
 				</motion.div>
 			)}
 		</>
