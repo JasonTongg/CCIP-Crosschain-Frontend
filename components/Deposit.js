@@ -18,7 +18,6 @@ import {
 import Tabs from "@mui/material/Tabs";
 import Tab from "@mui/material/Tab";
 import Box from "@mui/material/Box";
-import InputLabel from "@mui/material/InputLabel";
 import MenuItem from "@mui/material/MenuItem";
 import FormControl from "@mui/material/FormControl";
 import Select from "@mui/material/Select";
@@ -39,6 +38,7 @@ import {
 } from "../store/data";
 import LinkIcon from "../public/assets/link.png";
 import Eth2 from "../public/assets/eth2.png";
+import { motion } from "framer-motion";
 
 const vaultAbi = [
 	{
@@ -247,7 +247,6 @@ export default function Deposit() {
 		}
 
 		try {
-			// Step 1: Simulate transaction
 			setDepositProgress("DEPOSITING");
 			toast.info("🔍 Simulating deposit transaction...");
 
@@ -262,12 +261,10 @@ export default function Deposit() {
 			console.log("🧪 Simulation result:", simulation);
 			toast.success("Simulation successful. Executing transaction...");
 
-			// Step 2: Execute transaction
 			const txHash = await walletClient.writeContract(simulation.request);
 			console.log("🚀 Transaction sent:", txHash);
 			toast.info("⏳ Waiting for confirmation...");
 
-			// Step 3: Wait for confirmation
 			const receipt = await publicClient.waitForTransactionReceipt({
 				hash: txHash,
 			});
@@ -296,16 +293,14 @@ export default function Deposit() {
 		}
 
 		try {
-			// Step 1: Prepare amount (use max if empty)
 			setWithdrawProgress("WITHDRAWING");
 			const withdrawAmount =
 				redeemAmount && redeemAmount !== ""
 					? parseEther(redeemAmount)
 					: BigInt(
 							"0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
-					  ); // type(uint256).max
+					  );
 
-			// Step 2: Simulate transaction
 			toast.info("🔍 Simulating withdraw transaction...");
 
 			const simulation = await publicClient.simulateContract({
@@ -319,12 +314,10 @@ export default function Deposit() {
 			console.log("🧪 Simulation result:", simulation);
 			toast.success("Simulation successful. Executing transaction...");
 
-			// Step 3: Execute transaction
 			const txHash = await walletClient.writeContract(simulation.request);
 			console.log("🚀 Transaction sent:", txHash);
 			toast.info("⏳ Waiting for confirmation...");
 
-			// Step 4: Wait for confirmation
 			const receipt = await publicClient.waitForTransactionReceipt({
 				hash: txHash,
 			});
@@ -354,19 +347,19 @@ export default function Deposit() {
 			case unichainSepolia.id:
 				return "Unichain Sepolia";
 			case soneiumMinato.id:
-				return "Soneium Sepolia";
+				return "Soneium Minato";
 			default:
 				return "Unknown Chain";
 		}
 	}
 
 	function getDailyInterestRate(ratePerSecond) {
-		const secondsPerDay = 86400; // 24 * 60 * 60
+		const secondsPerDay = 86400;
 		const ratePerDay = ratePerSecond * secondsPerDay;
 
 		return {
-			decimal: ratePerDay, // e.g. 0.00432
-			percent: ratePerDay * 100, // e.g. 0.432%
+			decimal: ratePerDay,
+			percent: ratePerDay * 100,
 			formatted: `${(ratePerDay * 100).toFixed(6)}% per day`,
 		};
 	}
@@ -377,18 +370,15 @@ export default function Deposit() {
 			const switched = await switchChainAsync({ chainId: Number(selectChain) });
 			console.log("✅ Chain switched:", switched.name);
 
-			// 🔥 Recreate the public client for the new chain
 			const { createPublicClient, http } = await import("viem");
 
 			const newPublicClient = createPublicClient({
-				chain: switched, // use the newly switched chain config
+				chain: switched,
 				transport: http(),
 			});
 
-			// manually override your publicClient reference
 			Object.assign(publicClient, newPublicClient);
 
-			// ✅ Now safely fetch data from the correct chain
 			await getUserBalance();
 			await getUserInterestRate();
 			await getSepoliaBalance();
@@ -425,7 +415,13 @@ export default function Deposit() {
 
 	return (
 		<>
-			<div className='relative w-full max-w-[700px] mx-auto mb-6'>
+			<motion.div
+				initial={{ transform: "translateX(100px)", opacity: 0 }}
+				whileInView={{ transform: "translateX(0px)", opacity: 1 }}
+				exit={{ transform: "translateX(100px)", opacity: 0 }}
+				transition={{ duration: 0.5 }}
+				className='relative w-full max-w-[700px] mx-auto mb-6'
+			>
 				<div className='absolute inset-0 bg-gradient-to-r from-cyan-200 to-teal-200 rounded-2xl blur-2xl opacity-60'></div>
 				<div className='relative rounded-2xl bg-white/80 backdrop-blur-sm shadow-lg border border-gray-200 p-5 flex items-center justify-evenly gap-6 flex-wrap'>
 					{[
@@ -464,9 +460,13 @@ export default function Deposit() {
 						</div>
 					))}
 				</div>
-			</div>
+			</motion.div>
 
-			<div
+			<motion.div
+				initial={{ transform: "translateX(-100px)", opacity: 0 }}
+				whileInView={{ transform: "translateX(0px)", opacity: 1 }}
+				exit={{ transform: "translateX(-100px)", opacity: 0 }}
+				transition={{ duration: 0.5 }}
 				className='grid  w-full gap-3'
 				id='deposit'
 				style={{ gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))" }}
@@ -785,7 +785,7 @@ export default function Deposit() {
 						)}
 					</div>
 				</div>
-			</div>
+			</motion.div>
 		</>
 	);
 }

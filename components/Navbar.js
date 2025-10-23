@@ -1,7 +1,5 @@
 import Link from "next/link";
-import Image from "next/image";
 import React from "react";
-import Logo from "../public/assets/Logo.webp";
 import { GiHamburgerMenu } from "react-icons/gi";
 import Menu from "@mui/material/Menu";
 import MenuItem from "@mui/material/MenuItem";
@@ -19,7 +17,6 @@ export default function Navbar() {
 	return (
 		<nav className='fixed top-0 left-0 w-full z-[99] bg-white/70 backdrop-blur-md border-b border-gray-200 shadow-sm'>
 			<div className='max-w-screen-2xl mx-auto flex items-center justify-between px-4 sm:px-6 lg:px-8 py-3'>
-				{/* Left Section — Links */}
 				<div className='items-center gap-6 text-gray-800 font-medium md:flex hidden'>
 					<Link
 						href='#deposit'
@@ -35,19 +32,16 @@ export default function Navbar() {
 					</Link>
 				</div>
 
-				{/* Right Section — Wallet Button */}
 				<div className='flex items-center gap-3'>
 					<ConnectButton />
 				</div>
 
-				{/* Mobile Menu Icon */}
 				<GiHamburgerMenu
 					className='text-3xl text-cyan-500 md:hidden block cursor-pointer'
 					onClick={handleClick}
 				/>
 			</div>
 
-			{/* Mobile Dropdown */}
 			<Menu
 				id='basic-menu'
 				anchorEl={anchorEl}

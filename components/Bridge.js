@@ -35,7 +35,8 @@ import Link from "next/link";
 import Loading from "../public/assets/loading.gif";
 import { motion } from "framer-motion";
 import { LuArrowRight } from "react-icons/lu";
-import Animation from "../public/assets/animation.gif";
+import Lottie from "lottie-react";
+import animationData from "../public/assets/animate.json";
 
 const erc20Abi = [
 	{
@@ -407,7 +408,7 @@ export default function Bridge() {
 			case unichainSepolia.id:
 				return "Unichain Sepolia";
 			case soneiumMinato.id:
-				return "Soneium Sepolia";
+				return "Soneium Minato";
 			default:
 				return "Unknown Chain";
 		}
@@ -639,7 +640,15 @@ export default function Bridge() {
 							</button>
 						)}
 					</div>
-					<div className='bg-gray-500 w-full'></div>
+					<div className='relative w-full'>
+						<div className='absolute inset-0 bg-gradient-to-tr from-cyan-100 to-teal-100 rounded-2xl blur-2xl opacity-70'></div>
+						<Lottie
+							animationData={animationData}
+							loop={true}
+							autoplay={true}
+							style={{ width: "100%" }}
+						/>
+					</div>
 				</motion.div>
 			) : (
 				<motion.div
@@ -735,7 +744,7 @@ export default function Bridge() {
 													src={Soneium}
 													className='w-[30px] h-auto rounded-[8px]'
 												/>{" "}
-												Soneium Sepolia
+												Soneium Minato
 											</div>
 										</MenuItem>
 									</Select>
@@ -872,53 +881,15 @@ export default function Bridge() {
 					</div>
 					<div className='relative w-full'>
 						<div className='absolute inset-0 bg-gradient-to-tr from-cyan-100 to-teal-100 rounded-2xl blur-2xl opacity-70'></div>
-						<div className='relative bg-white/80 rounded-xl p-6 shadow-xl h-full'>
-							{/* <Image src={Animation} className='w-full' /> */}
-						</div>
+						<Lottie
+							animationData={animationData}
+							loop={true}
+							autoplay={true}
+							style={{ width: "100%" }}
+						/>
 					</div>
 				</motion.div>
 			)}
 		</>
-		/* <select
-                onChange={(e) => {
-                    setOriginalChainId(e.target.value)
-                    switchChain({ chainId: Number(e.target.value) });
-                }}
-                value={originalChainId}
-            >
-                <option value={sepolia.id}>ETH Sepolia</option>
-                <option value={optimismSepolia.id}>OP Sepolia</option>
-                <option value={arbitrumSepolia.id}>Arbitrum Sepolia</option>
-                <option value={baseSepolia.id}>Base Sepolia</option>
-                <option value={unichainSepolia.id}>Unichain Sepolia</option>
-                <option value={soneiumMinato.id}>Soneium Sepolia</option>
-            </select>
-            <select
-                onChange={(e) => setDestinationChainId(e.target.value)}
-                value={destinationChainId}
-            >
-                {supportedDestinationChain.map((item, index) => (
-                    <option key={index} value={item}>
-                        {getChainName(item)}
-                    </option>
-                ))}
-            </select>
-            {loading === true && bridgeStatus[0] === true && (
-                <p>Approving Rebase Token </p>
-            )}
-            {loading === true && bridgeStatus[1] === true && (
-                <p>Approving Link Token </p>
-            )}
-            {loading === true && bridgeStatus[2] === true && <p>Bridging </p>}
-            <p>{bridgeMessage}</p>
-            <button
-                onClick={() =>
-                    handleBridge(originalChainId, destinationChainId, "0.00001")
-                }
-                disabled={!isConnected || loading}
-                className='bg-blue-500 text-white px-6 py-3 rounded-xl shadow hover:bg-blue-600 disabled:opacity-50'
-            >
-                {loading ? "Processing..." : "Bridge Tokens"}
-            </button> */
 	);
 }
