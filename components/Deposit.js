@@ -249,8 +249,6 @@ export default function Deposit() {
 				value: parseEther(amount),
 			});
 
-			console.log(simulation);
-
 			toast.success("Simulation successful. Executing transaction...");
 
 			const txHash = await walletClient.writeContract(simulation.request);
@@ -289,6 +287,18 @@ export default function Deposit() {
 					: BigInt(
 							"0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
 					  );
+
+			const contractBalance = await publicClient.getBalance({
+				address: getVaultAddress(selectChain),
+			});
+
+			if (contractBalance < withdrawAmount) {
+				toast.error("Not enough ETH available right now.");
+				toast.error(
+					"You can bridge your funds and withdraw from a different chain."
+				);
+				return;
+			}
 
 			toast.info("🔍 Simulating withdraw transaction...");
 
