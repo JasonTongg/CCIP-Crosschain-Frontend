@@ -147,6 +147,8 @@ export default function Bridge() {
 	const handleOpen = () => setOpen(true);
 	const handleClose = () => setOpen(false);
 
+	const [showBackBtn, setShowBackBtn] = useState(false);
+
 	function getChainDetails(originalChainId, destinationChainId) {
 		let rebaseToken, bridgeContract, linkAddress, destSelector, router;
 
@@ -202,8 +204,6 @@ export default function Bridge() {
 	}
 
 	async function approveRBT(rebaseToken, bridgeContract, amount) {
-		console.log("🔍 Checking rebase token allowance...");
-
 		let currentAllowance = 0n;
 
 		try {
@@ -282,8 +282,6 @@ export default function Bridge() {
 
 		try {
 			if (linkAllowance < minLinkAmount) {
-				console.log("🔍 Simulating LINK approval...");
-
 				const simulation = await publicClient.simulateContract({
 					account: walletClient.account,
 					address: linkAddress,
@@ -320,7 +318,6 @@ export default function Bridge() {
 		destinationChainId,
 		tokenAmount
 	) {
-		console.log(originalChainId, destinationChainId, tokenAmount);
 		if (!walletClient || !isConnected) {
 			toast.error("⚠️ Please connect your wallet first.");
 			return;
@@ -339,6 +336,7 @@ export default function Bridge() {
 		try {
 			setLoading(true);
 			setIsBridging(true);
+			setShowBackBtn(false);
 			setBridgeStatus([true, false, false, false]);
 
 			await approveRBT(rebaseToken, bridgeContract, amount);
@@ -377,8 +375,6 @@ export default function Bridge() {
 					setBridgeStatus([true, true, true, true]);
 					handleOpen();
 				}
-
-				console.log(receipt);
 			} catch (error) {
 				if (error.shortMessage) {
 					toast.error(`Bridge failed: ${error.shortMessage}`);
@@ -392,6 +388,8 @@ export default function Bridge() {
 			toast.error(`Error: ${err.shortMessage || err.message}`);
 		} finally {
 			setLoading(false);
+
+			setShowBackBtn(true);
 		}
 	}
 
@@ -628,7 +626,7 @@ export default function Bridge() {
 								className='w-[50px] h-auto'
 							/>
 						</div>
-						{bridgeStatus.some((item) => item === false) === false && (
+						{showBackBtn && (
 							<button
 								onClick={() => {
 									setIsBridging(false);
@@ -814,7 +812,7 @@ export default function Bridge() {
 								value={bridgeAmount}
 							/>
 							<button
-								onClick={(e) => setBridgeAmount(Number(RBTBalance))}
+								onClick={(e) => setBridgeAmount(Number(RBTBalance) * 0.999)}
 								className='border-[1px] border-gray-300 rounded-[100px] py-1 px-2 text-sm'
 							>
 								MAX

@@ -173,13 +173,10 @@ export default function Deposit() {
 				args: [address],
 			});
 
-			console.log("💰 User balance:", balance);
-			console.log("💰 Formatted balance:", formatEther(balance));
-
 			setUserBalance(formatEther(balance));
 			dispatch(setRbtBalance(formatEther(balance)));
 		} catch (err) {
-			console.error("❌ Error fetching user balance:", err);
+			toast.error("❌ Error fetching RBT balance");
 			return "0";
 		}
 	}
@@ -200,13 +197,10 @@ export default function Deposit() {
 				args: [address],
 			});
 
-			console.log("💰 User Link balance:", balance);
-			console.log("💰 Formatted Link balance:", formatEther(balance));
-
 			setUserLinkBalance(formatEther(balance));
 			dispatch(setLinkBalance(formatEther(balance)));
 		} catch (err) {
-			console.error("❌ Error fetching user balance:", err);
+			toast.error("❌ Error fetching LINK balance");
 			return "0";
 		}
 	}
@@ -224,13 +218,10 @@ export default function Deposit() {
 				args: [address],
 			});
 
-			console.log("💰 User InterestRate:", interestRate);
-			console.log("💰 Formatted InterestRate:", formatEther(interestRate));
-
 			setUserInterestRate(formatEther(interestRate));
 			dispatch(setInterestRate(formatEther(interestRate)));
 		} catch (err) {
-			console.error("❌ Error fetching user balance:", err);
+			toast.error("❌ Error fetching user interest rate");
 			return "0";
 		}
 	}
@@ -258,25 +249,23 @@ export default function Deposit() {
 				value: parseEther(amount),
 			});
 
-			console.log("🧪 Simulation result:", simulation);
+			console.log(simulation);
+
 			toast.success("Simulation successful. Executing transaction...");
 
 			const txHash = await walletClient.writeContract(simulation.request);
-			console.log("🚀 Transaction sent:", txHash);
 			toast.info("⏳ Waiting for confirmation...");
 
 			const receipt = await publicClient.waitForTransactionReceipt({
 				hash: txHash,
 			});
-			console.log("🎉 Deposit confirmed:", receipt);
 			toast.success("Deposit successful!");
 			setDepositProgress("DEPOSIT");
 
 			handleChainChange();
 			setAmount("");
 		} catch (err) {
-			console.error("❌ Deposit failed:", err);
-			toast.error("Deposit failed. Check console for details.");
+			toast.error("Deposit failed.");
 			setDepositProgress("DEPOSIT");
 		}
 	}
@@ -311,25 +300,21 @@ export default function Deposit() {
 				args: [withdrawAmount],
 			});
 
-			console.log("🧪 Simulation result:", simulation);
 			toast.success("Simulation successful. Executing transaction...");
 
 			const txHash = await walletClient.writeContract(simulation.request);
-			console.log("🚀 Transaction sent:", txHash);
 			toast.info("⏳ Waiting for confirmation...");
 
 			const receipt = await publicClient.waitForTransactionReceipt({
 				hash: txHash,
 			});
-			console.log("🎉 Withdraw confirmed:", receipt);
 			toast.success("Withdraw successful!");
 
 			handleChainChange();
 			setWithdrawProgress("WITHDRAW");
 			setRedeemAmount("");
 		} catch (err) {
-			console.error("❌ Withdraw failed:", err);
-			toast.error("❌ Withdraw failed. Check console for details.");
+			toast.error("❌ Withdraw failed.");
 			setWithdrawProgress("WITHDRAW");
 		}
 	}
@@ -366,9 +351,7 @@ export default function Deposit() {
 
 	async function handleChainChange() {
 		try {
-			console.log("🔄 Switching to chain:", selectChain);
 			const switched = await switchChainAsync({ chainId: Number(selectChain) });
-			console.log("✅ Chain switched:", switched.name);
 
 			const { createPublicClient, http } = await import("viem");
 
@@ -384,7 +367,7 @@ export default function Deposit() {
 			await getSepoliaBalance();
 			await getUserLinkBalance();
 		} catch (err) {
-			console.error("❌ Error switching chain or fetching data:", err);
+			toast.error("❌ Error switching chain");
 		}
 	}
 
@@ -396,12 +379,10 @@ export default function Deposit() {
 			const balance = await publicClient.getBalance({
 				address,
 			});
-
-			console.log("💰 Sepolia Balance:", formatEther(balance));
 			setUserTestnetBalance(formatEther(balance));
 			dispatch(setBalance(formatEther(balance)));
 		} catch (err) {
-			console.error("❌ Error fetching Sepolia balance:", err);
+			toast.error("❌ Error fetching Sepolia balance");
 		}
 	}
 
@@ -549,7 +530,9 @@ export default function Deposit() {
 											</p>
 											<button
 												onClick={() => {
-													setAmount(Number(userTestnetBalance).toFixed(4));
+													setAmount(
+														(Number(userTestnetBalance) * 0.999).toFixed(6)
+													);
 												}}
 												className='text-gray-950'
 											>
@@ -675,12 +658,14 @@ export default function Deposit() {
 										<div className='text-xl'>RBT</div>
 									</div>
 									<div className='flex items-center justify-between w-full [&>*]:text-gray-400 [&>*]:text-sm'>
-										<p>{amount ? amount : "0.00"}</p>
+										<p>{redeemAmount ? redeemAmount : "0.00"}</p>
 										<div className='flex items-center justify-center gap-1'>
 											<p>Balance: {Number(userBalance).toFixed(4)}</p>
 											<button
 												onClick={() => {
-													setAmount(Number(Number(userBalance).toFixed(4)));
+													setRedeemAmount(
+														(Number(userBalance) * 0.999).toFixed(6)
+													);
 												}}
 												className='text-gray-950'
 											>
