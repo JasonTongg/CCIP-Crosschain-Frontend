@@ -9,7 +9,8 @@ In addition to standard CCIP cross-chain transfers, the app introduces a **Rebas
 Users can deposit ETH or supported tokens to receive RBT — a dynamic, rebasing token that grows automatically in their wallet over time.  
 All RBT balances and staking states are synchronized across supported chains through CCIP’s secure cross-chain communication layer.  
 
-The live version is available at: [https://ccip-crosschain.vercel.app/](https://ccip-crosschain.vercel.app/)
+- The live version is available at: [https://ccip-crosschain.vercel.app/](https://ccip-crosschain.vercel.app/).
+- Smart Contract using Foundry: [CCIP Rebase Token Smart Contract](https://github.com/JasonTongg/CCIP-RebaseToken-CrossChain).
 
 ## Features  
 - Connect wallet (e.g., MetaMask) and select source/destination chains  
