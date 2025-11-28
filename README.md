@@ -1,3 +1,7 @@
+<img width="1038" height="532" alt="image" src="https://github.com/user-attachments/assets/0662fdad-f1e7-47c2-9689-846aab9ccce9" />
+
+
+
 ## Project Overview  
 This project demonstrates a web interface for **token bridging, and yield staking** using the **Cross-Chain Interoperability Protocol (CCIP)** framework by Chainlink.  
 
@@ -75,6 +79,6 @@ Example Flow
 
 **Jason Tong**  
 
-**Product:** [ccip-crosschain.vercel.app](https://ccip-crosschain.vercel.app/)  
-**GitHub:** [JasonTongg]([https://github.com/yourusername/ccip-crosschain](https://github.com/JasonTongg))
-**Linkedin:** [Jason Tong](https://www.linkedin.com/in/jason-tong-42600319a/)
+- **Product:** [ccip-crosschain.vercel.app](https://ccip-crosschain.vercel.app/)  
+- **GitHub:** [JasonTongg](https://github.com/JasonTongg)
+- **Linkedin:** [Jason Tong](https://www.linkedin.com/in/jason-tong-42600319a/)
